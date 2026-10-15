@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: financial-news
+spec:
+  replicas: 1
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  selector:
+    matchLabels:
+      app: financial-news
+
+  template:
+    metadata:
+      name: financial-news
+      labels:
+        app: financial-news
+
+    spec:
+      containers:
+        - name: financial-news
+          image: luigisr03/financial-news:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SPRING_RABBITMQ_HOST
+              value: rabbitmq
+            - name: SPRING_RABBITMQ_PORT
+              value: "5672"
+            - name: SPRING_RABBITMQ_VIRTUAL_HOST
+              value: "trading-bot-vhost"
+            - name: SPRING_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: news-ingestion-service-secret
+                  key: SPRING_RABBITMQ_PASSWORD
+            - name: ALPACA_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: news-ingestion-service-secret
+                  key: ALPACA_API_SECRET
+            - name: ALPACA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: news-ingestion-service-secret
+                  key: ALPACA_API_KEY
+            - name: ALPACA_API_NEWS_STREAM_URL
+              value: "wss://stream.data.alpaca.markets/v1beta1/news"
