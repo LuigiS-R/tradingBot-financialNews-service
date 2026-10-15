@@ -1,0 +1,23 @@
+# Build and run the service for 64-bit x86 Linux hosts.
+FROM --platform=linux/amd64 maven:3.9-eclipse-temurin-17 AS build
+
+WORKDIR /workspace
+
+# Keep the Docker build scoped to the project descriptor and source tree.
+COPY pom.xml ./
+COPY src ./src
+
+RUN mvn -B -DskipTests package \
+    && find target -maxdepth 1 -type f -name '*.jar' ! -name 'original-*.jar' -print -quit \
+       | xargs -I{} cp {} /workspace/app.jar
+
+FROM --platform=linux/amd64 eclipse-temurin:17-jre
+
+RUN useradd --system --create-home --uid 10001 appuser
+
+WORKDIR /app
+COPY --from=build /workspace/app.jar ./app.jar
+
+USER appuser
+
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
